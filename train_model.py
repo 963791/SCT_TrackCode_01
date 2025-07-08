@@ -1,24 +1,24 @@
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-import joblib
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 
-# Load data
-df = pd.read_csv('housing.csv')
+def preprocess_data(df, selected_columns):
+    df_processed = df[selected_columns].copy()
 
-# Select features and target
-X = df[[
-    'Avg. Area Income',
-    'Avg. Area House Age',
-    'Avg. Area Number of Rooms',
-    'Avg. Area Number of Bedrooms',
-    'Area Population'
-]]
-y = df['Price']
+    # Convert income if present
+    if 'Annual Income (k$)' in df_processed.columns:
+        df_processed['Annual Income (₹)'] = df_processed['Annual Income (k$)'] * 1000 * 83
+        df_processed.drop(columns=['Annual Income (k$)'], inplace=True)
 
-# Train model
-model = LinearRegression()
-model.fit(X, y)
+    # One-hot encode Gender
+    if 'Gender' in df_processed.columns:
+        df_processed = pd.get_dummies(df_processed, columns=['Gender'], drop_first=True)
 
-# Save model
-joblib.dump(model, 'model.pkl')
-print("Model trained and saved to model.pkl")
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(df_processed)
+    return scaled_data, df_processed.columns
+
+def apply_kmeans(scaled_data, n_clusters):
+    model = KMeans(n_clusters=n_clusters, random_state=42)
+    clusters = model.fit_predict(scaled_data)
+    return clusters, model
